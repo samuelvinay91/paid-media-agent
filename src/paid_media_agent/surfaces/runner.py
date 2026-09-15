@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 from uuid import UUID
 
+from langchain.agents.middleware.internal_call_transformer import INTERNAL_CALL_METADATA_KEY
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
@@ -29,6 +30,19 @@ class RunOutcome:
     interrupted: bool
     proposal: ProposalView | None
     receipt: ReceiptView | None
+
+
+def visible_model_text(metadata: dict[str, Any]) -> bool:
+    """True for the agent's own model output.
+
+    Middleware-internal calls such as the portable tool selector run inside the same graph node,
+    so the node name alone would stream their JSON selection into the reply.
+    """
+    if metadata.get("langgraph_node") != "model":
+        return False
+    return (
+        INTERNAL_CALL_METADATA_KEY not in metadata and metadata.get("lc_source") != "tool_selection"
+    )
 
 
 @dataclass(frozen=True)
@@ -163,7 +177,7 @@ class AgentRunner:
             mode, data = chunk
             if mode == "messages":
                 message, metadata = data
-                if isinstance(message, AIMessage) and metadata.get("langgraph_node") == "model":
+                if isinstance(message, AIMessage) and visible_model_text(metadata):
                     content = message.content
                     text = (
                         content

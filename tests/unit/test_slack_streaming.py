@@ -122,3 +122,14 @@ async def test_approval_suspends_native_session_and_marks_tool_pending() -> None
         "Approve",
         "Reject",
     }
+
+
+def test_internal_selector_calls_are_not_streamed_as_text() -> None:
+    from langchain.agents.middleware.internal_call_transformer import INTERNAL_CALL_METADATA_KEY
+
+    from paid_media_agent.surfaces.runner import visible_model_text
+
+    assert visible_model_text({"langgraph_node": "model"})
+    assert not visible_model_text({"langgraph_node": "tools"})
+    assert not visible_model_text({"langgraph_node": "model", INTERNAL_CALL_METADATA_KEY: "tok"})
+    assert not visible_model_text({"langgraph_node": "model", "lc_source": "tool_selection"})
