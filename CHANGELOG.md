@@ -26,6 +26,9 @@
   host-side.
 - The model's filesystem view is limited to `/skills` and `/workspace` in every runtime, matching
   the managed sandbox; application source and configuration are no longer readable.
+- Self-hosted Slack replies: the SDK's asynchronous `chat_stream` is awaited before text and tool
+  progress are appended, so mentions and direct messages get a streamed answer instead of a
+  silent failure.
 
 Live provider writes remain disabled by default and require the documented release gates.
 
