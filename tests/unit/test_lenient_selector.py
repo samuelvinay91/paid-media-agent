@@ -49,7 +49,10 @@ def test_vertex_selector_sends_enum_names_in_json_mode() -> None:
                 "items": {
                     "anyOf": [
                         {"const": "google_ads__get_campaign_performance", "description": "Rows"},
-                        {"const": "meta_ads__list_campaigns", "description": "Campaign list"},
+                        {
+                            "const": "meta_ads__list_campaigns",
+                            "description": "Campaign list\n\nArgs:\n  account_id: long text " * 3,
+                        },
                     ]
                 },
             }
@@ -60,6 +63,7 @@ def test_vertex_selector_sends_enum_names_in_json_mode() -> None:
     items = inner.schemas[-1]["properties"]["tools"]["items"]
     assert items["enum"] == ["google_ads__get_campaign_performance", "meta_ads__list_campaigns"]
     assert "anyOf" not in items and "Campaign list" in items["description"]
+    assert "Args:" not in items["description"], "legend keeps only the first line"
     claude = lenient_selector(inner, ModelConfig.parse("google_anthropic_vertex:claude-sonnet-4-6"))
     assert claude is None, "only Gemini on Vertex needs the enum rewrite"
 

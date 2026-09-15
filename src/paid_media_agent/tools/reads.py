@@ -354,9 +354,12 @@ def build_platform_read_tools(
     }
     tools: list[BaseTool] = []
     for entry in catalog.read_entries():
-        tools.append(
-            _make_read_tool(entry, aliases_by_platform.get(entry.platform, ()), dispatcher)
-        )
+        aliases = aliases_by_platform.get(entry.platform, ())
+        if not aliases:
+            # A read tool for a platform with no mapped account can never execute. Binding it
+            # only widens the selection surface and the selector prompt.
+            continue
+        tools.append(_make_read_tool(entry, aliases, dispatcher))
     return tools
 
 

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+
+from paid_media_agent.config import AccountBinding, AccountRegistry
 from paid_media_agent.domain.common import Platform
 from paid_media_agent.tools.catalog import (
     DEFAULT_LOCAL_POLICY,
@@ -8,7 +12,9 @@ from paid_media_agent.tools.catalog import (
     build_authorized_catalog,
     classify,
 )
+from paid_media_agent.tools.discovery import build_discover_tools_tool
 from paid_media_agent.tools.fixtures import FIXTURE_LOCAL_POLICY, build_fixture_catalog
+from paid_media_agent.tools.reads import build_platform_read_tools
 
 
 def _raw(
@@ -116,3 +122,43 @@ def test_revision_changes_when_a_schema_changes() -> None:
     second = build_authorized_catalog(changed, policy=DEFAULT_LOCAL_POLICY, source="t")
     assert first.revision != second.revision
     assert first.entries[0].schema_hash != second.entries[0].schema_hash
+
+
+def test_meta_insights_bind_object_id_as_the_account_scope() -> None:
+    insights = {
+        "type": "object",
+        "properties": {"object_id": {"type": "string"}, "level": {"type": "string"}},
+        "required": ["object_id"],
+    }
+    decision, platform, account_arg = classify(
+        _raw("get_insights", {"readOnlyHint": True}, platform="meta_ads", schema=insights),
+        DEFAULT_LOCAL_POLICY,
+    )
+    assert decision.tool_class is ToolClass.READ and platform is Platform.META_ADS
+    assert account_arg == "object_id", "the host binds the mapped ad account to object_id"
+    detail = {"type": "object", "properties": {"campaign_id": {"type": "string"}}}
+    decision, _, _ = classify(
+        _raw("get_campaign_details", {"readOnlyHint": True}, platform="meta_ads", schema=detail),
+        DEFAULT_LOCAL_POLICY,
+    )
+    assert decision.reason == "no_account_scope", "entity ids are not an account scope"
+
+
+def test_unmapped_platforms_are_neither_bound_nor_discoverable() -> None:
+    catalog = build_fixture_catalog()
+    registry = AccountRegistry(
+        bindings=(
+            AccountBinding(
+                alias="meta-main",
+                platform=Platform.META_ADS,
+                provider_account_id="act_1",
+                currency="INR",
+                timezone="Asia/Kolkata",
+            ),
+        )
+    )
+    tools = build_platform_read_tools(catalog, SimpleNamespace(accounts=registry))  # type: ignore[arg-type]
+    assert tools and all(t.name.startswith("meta_ads__") for t in tools)
+    discover = build_discover_tools_tool(SimpleNamespace(current=lambda: catalog), registry)  # type: ignore[arg-type]
+    listed = json.loads(discover.invoke({"query": "campaign"}))["tools"]
+    assert listed and {t["platform"] for t in listed} == {"meta_ads"}

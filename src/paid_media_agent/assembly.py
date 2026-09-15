@@ -213,7 +213,7 @@ def build_agent_components(
     platform_tools = build_platform_read_tools(catalog, services.read_dispatcher)
     core_tools: list[BaseTool] = [
         build_list_accounts_tool(runtime.accounts),
-        build_discover_tools_tool(runtime.catalog_provider),
+        build_discover_tools_tool(runtime.catalog_provider, runtime.accounts),
         build_compare_periods_tool(runtime.artifacts),
         build_summarize_window_tool(runtime.artifacts),
         build_render_report_tool(runtime.artifacts),

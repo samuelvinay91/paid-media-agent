@@ -232,13 +232,25 @@ class PortableToolSelectorMiddleware(LLMToolSelectorMiddleware):
             return await handler(self._core_only(request))
 
 
+LEGEND_DESCRIPTION_CHARS = 160
+
+
+def _brief(description: str) -> str:
+    """First line of a tool description, bounded. Provider descriptions run to paragraphs."""
+    first = description.strip().split("\n", 1)[0].strip()
+    if len(first) <= LEGEND_DESCRIPTION_CHARS:
+        return first
+    return first[: LEGEND_DESCRIPTION_CHARS - 1].rstrip() + "…"
+
+
 def literal_union_to_enum(schema: Any) -> Any:
     """Rewrite `anyOf` lists of string `const` entries into a string `enum`.
 
     The selection schema names each tool as `Literal[name]` with its description. A provider
     that drops `const` is left with descriptions only and echoes those back as the selection.
-    The enum keeps the names; the descriptions move into the field description so the model
-    still sees what each tool does.
+    The enum keeps the names; a one-line summary of each description moves into the field
+    description so the model still sees what each tool does without a prompt that grows to
+    tens of thousands of tokens on a large live catalog.
     """
     if isinstance(schema, list):
         return [literal_union_to_enum(item) for item in schema]
@@ -251,7 +263,7 @@ def literal_union_to_enum(schema: Any) -> Any:
         and all(isinstance(o, dict) and isinstance(o.get("const"), str) for o in options)
     ):
         legend = "; ".join(
-            f"{o['const']}: {o['description']}" if o.get("description") else o["const"]
+            f"{o['const']}: {_brief(o['description'])}" if o.get("description") else o["const"]
             for o in options
         )
         rewritten = {k: v for k, v in schema.items() if k != "anyOf"}

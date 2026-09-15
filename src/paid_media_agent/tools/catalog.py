@@ -100,8 +100,11 @@ class LocalPolicy(BaseModel):
 DEFAULT_LOCAL_POLICY = LocalPolicy(
     platforms=(
         PlatformPolicy(platform=Platform.GOOGLE_ADS, account_arg_names=("customer_id",)),
+        # Meta insights tools take object_id, which the host binds to the mapped ad account;
+        # campaign, ad set, and ad rows come from the tool's level argument.
         PlatformPolicy(
-            platform=Platform.META_ADS, account_arg_names=("account_id", "ad_account_id")
+            platform=Platform.META_ADS,
+            account_arg_names=("account_id", "ad_account_id", "object_id"),
         ),
         PlatformPolicy(platform=Platform.REDDIT_ADS, account_arg_names=("account_id",)),
         PlatformPolicy(platform=Platform.TIKTOK_ADS, account_arg_names=("advertiser_id",)),

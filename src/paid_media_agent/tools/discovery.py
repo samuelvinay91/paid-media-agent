@@ -50,10 +50,16 @@ def build_list_accounts_tool(accounts: AccountRegistry) -> BaseTool:
     )
 
 
-def build_discover_tools_tool(catalog_provider: CatalogProvider) -> BaseTool:
+def build_discover_tools_tool(
+    catalog_provider: CatalogProvider, accounts: AccountRegistry | None = None
+) -> BaseTool:
     def _discover(query: str, platform: Platform | None = None) -> str:
         catalog = catalog_provider.current()
         entries = catalog.search(query, platform=platform)
+        if accounts is not None:
+            # Tools for platforms without a mapped account are never bound, so listing them
+            # only sends the model chasing tools it cannot call.
+            entries = tuple(e for e in entries if accounts.aliases(e.platform))
         return json.dumps(
             {
                 "catalog_revision": catalog.revision,
