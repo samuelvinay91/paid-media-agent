@@ -29,6 +29,8 @@
 - Self-hosted Slack replies: the SDK's asynchronous `chat_stream` is awaited before text and tool
   progress are appended, so mentions and direct messages get a streamed answer instead of a
   silent failure.
+- Streamed Slack replies no longer include the portable tool selector's JSON output; the runner
+  skips model messages tagged as middleware-internal calls.
 
 Live provider writes remain disabled by default and require the documented release gates.
 
