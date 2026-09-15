@@ -16,6 +16,14 @@
   extra, authenticated with Application Default Credentials.
 - Terraform and scripts for a single Compute Engine VM deployment in `deploy/gcp/`.
 
+### Fixed
+
+- Gemini on Vertex AI tool selection: the selector schema is rewritten to a string enum in
+  JSON mode, since the Vertex client drops `const` and rejects `anyOf`.
+- Live Pipeboard catalogs: read tools and discovery cover only platforms with a mapped account,
+  the selector legend carries one-line summaries, and Meta `get_insights` is admitted by binding
+  the mapped ad account to `object_id`.
+
 Live provider writes remain disabled by default and require the documented release gates.
 
 ### Changed

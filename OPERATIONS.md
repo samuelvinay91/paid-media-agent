@@ -150,6 +150,9 @@ shared tools and skills, not tool-specific message renderers.
 Pipeboard connects Google Ads, Meta Ads, TikTok Ads, Pinterest Ads, Snap Ads, Reddit Ads, LinkedIn
 Ads, and Google Analytics. Catalogs load concurrently; tool selection keeps full schemas out of
 every model request. Account discovery is host-side. Unknown or unscoped tools are excluded.
+Read tools are bound only for platforms that have a mapped account alias, and `discover_tools`
+lists only those platforms. Meta insights tools take `object_id`, which the host binds to the
+mapped ad account; campaign, ad set, and ad rows come from their `level` argument.
 
 X Ads and OpenAI Ads have read-only direct adapters. Set their keys in `.env`, then run
 `accounts discover` and map the accounts. X uses OAuth 1.0a. OpenAI Ads requires advertiser API
