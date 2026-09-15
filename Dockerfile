@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir uv
 WORKDIR /app
 COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src ./src
-RUN uv sync --frozen --no-dev --extra self-host --extra slack --extra reports
+RUN uv sync --frozen --no-dev --extra self-host --extra slack --extra reports --extra vertex
 COPY instructions.md ./
 COPY workspace/skills ./skills
 COPY config/accounts.example.toml config/write-policy.example.toml ./config/

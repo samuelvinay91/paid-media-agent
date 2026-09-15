@@ -115,6 +115,10 @@ class Settings(BaseSettings):
     paid_media_tool_selector_model: str | None = None
     paid_media_model_api_key_env: str | None = None
     """Env var holding the model API key when the provider does not read its default one."""
+    google_cloud_project: str | None = None
+    """Google Cloud project for Vertex AI providers. Unset uses the project implied by ADC."""
+    google_cloud_location: str | None = None
+    """Vertex AI region, for example us-central1. Unset uses the client library default."""
     paid_media_model_timeout_seconds: int = Field(default=120, ge=10)
     """Per-request model timeout. A stalled gateway call otherwise blocks a run indefinitely."""
     paid_media_max_model_calls: int = Field(default=40, ge=5)

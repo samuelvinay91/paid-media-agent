@@ -65,6 +65,8 @@ groq = ["langchain-groq>=1,<2"]
 xai = ["langchain-xai>=1,<2"]
 mistral = ["langchain-mistralai>=1,<2"]
 deepseek = ["langchain-deepseek>=1,<2"]
+# Vertex AI: Gemini and Claude through Google Cloud with Application Default Credentials.
+vertex = ["langchain-google-vertexai[anthropic]>=3.2,<4"]
 
 [dependency-groups]
 dev = [
@@ -108,3 +110,11 @@ python_version = "3.11"
 strict = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# numpy arrives transitively with the vertex extra and its stubs use the 3.12 `type` statement,
+# which fails under python_version 3.11. Nothing in src imports numpy. mypy follows stub
+# packages regardless of follow_imports unless follow_imports_for_stubs is also set.
+module = ["numpy", "numpy.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true

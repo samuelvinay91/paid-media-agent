@@ -69,6 +69,15 @@ _GOOGLE = ModelCapabilities(
     notes="No provider-side deferred tool search; portable selector path.",
     verified=True,
 )
+_VERTEX = ModelCapabilities(
+    tool_calling=True,
+    structured_output=True,
+    native_tool_search=False,
+    streaming_tool_calls=True,
+    integration_package="langchain-google-vertexai",
+    notes="Gemini on Vertex AI with Application Default Credentials; portable selector path.",
+    verified=True,
+)
 _GATEWAY = ModelCapabilities(
     tool_calling=True,
     structured_output=True,
@@ -106,6 +115,8 @@ CAPABILITY_REGISTRY: dict[str, ModelCapabilities] = {
     "openai:gpt-5.6": _OPENAI,
     "google_genai:gemini-3-flash": _GOOGLE,
     "google_genai:gemini-3.6-flash": _GOOGLE,
+    "google_vertexai:gemini-3.1-pro": _VERTEX,
+    "google_vertexai:gemini-3.8-flash": _VERTEX,
     "scripted:demo": _SCRIPTED,
     "langsmith:anthropic/claude-sonnet-4-6": _GATEWAY,
     "langsmith:anthropic/claude-opus-5": _GATEWAY,
@@ -128,6 +139,8 @@ PROVIDER_DISTRIBUTIONS: dict[str, str] = {
     "anthropic": "langchain-anthropic",
     "openai": "langchain-openai",
     "google_genai": "langchain-google-genai",
+    "google_vertexai": "langchain-google-vertexai",
+    "google_anthropic_vertex": "langchain-google-vertexai",
     "langsmith": "langchain-openai",
 }
 

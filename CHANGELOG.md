@@ -12,6 +12,9 @@
 - Managed Deep Agents deployment with Slack and schedule declarations, plus a self-hosted API,
   Slack adapter, and optional Postgres persistence.
 - Runtime skills and editable business context shared across both deployment paths.
+- Vertex AI model providers (`google_vertexai`, `google_anthropic_vertex`) through the `vertex`
+  extra, authenticated with Application Default Credentials.
+- Terraform and scripts for a single Compute Engine VM deployment in `deploy/gcp/`.
 
 Live provider writes remain disabled by default and require the documented release gates.
 

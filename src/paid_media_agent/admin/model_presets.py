@@ -162,6 +162,8 @@ PROVIDER_IMPORT_MODULES: dict[str, str] = {
     "anthropic": "langchain_anthropic",
     "openai": "langchain_openai",
     "google_genai": "langchain_google_genai",
+    "google_vertexai": "langchain_google_vertexai",
+    "google_anthropic_vertex": "langchain_google_vertexai",
     "groq": "langchain_groq",
     "xai": "langchain_xai",
     "mistralai": "langchain_mistralai",

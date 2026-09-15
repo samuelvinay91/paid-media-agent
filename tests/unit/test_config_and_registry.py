@@ -70,3 +70,40 @@ def test_account_registry_from_toml(project_root: Path) -> None:
     assert binding is not None and binding.platform.value == "google_ads"
     assert registry.resolve("unknown") is None
     assert "fixture-google-0001" in registry.provider_ids()
+
+
+def test_vertex_providers_use_adc_and_portable_selection(monkeypatch: pytest.MonkeyPatch) -> None:
+    from paid_media_agent.admin.envfile import key_spec
+    from paid_media_agent.admin.model_presets import PROVIDER_IMPORT_MODULES, model_key_env
+    from paid_media_agent.assembly import VERTEX_PROVIDERS, resolve_model
+    from paid_media_agent.middleware.tool_selection import PROVIDER_DISTRIBUTIONS
+
+    captured: dict[str, object] = {}
+
+    def fake_init(spec: str, **kwargs: object) -> object:
+        captured["spec"] = spec
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr("langchain.chat_models.init_chat_model", fake_init)
+    vertex = ModelConfig.parse("google_vertexai:gemini-3.1-pro")
+    assert capabilities_for(vertex).verified and not capabilities_for(vertex).native_tool_search
+    assert plan_selection(vertex, max_tools=6).strategy is SelectionStrategy.PORTABLE_SELECTOR
+    resolve_model(vertex, vertex_project="demo-project", vertex_location="europe-west1")
+    assert captured["spec"] == "google_vertexai:gemini-3.1-pro"
+    assert captured["project"] == "demo-project" and captured["location"] == "europe-west1"
+    assert "api_key" not in captured, "Vertex authenticates with ADC, never a stored key"
+
+    captured.clear()
+    resolve_model(ModelConfig.parse("anthropic:claude-sonnet-4-6"), vertex_project="demo-project")
+    assert "project" not in captured, "project and location apply to Vertex providers only"
+
+    for provider in VERTEX_PROVIDERS:
+        assert PROVIDER_DISTRIBUTIONS[provider] == "langchain-google-vertexai"
+        assert PROVIDER_IMPORT_MODULES[provider] == "langchain_google_vertexai"
+    assert key_spec("GOOGLE_CLOUD_PROJECT") is not None and key_spec("GOOGLE_CLOUD_LOCATION")
+
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "env-project")
+    settings = Settings(_env_file=None, paid_media_model="google_vertexai:gemini-3-flash")  # type: ignore[call-arg]
+    assert settings.google_cloud_project == "env-project"
+    assert model_key_env(settings) is None, "no API key variable is required for Vertex"

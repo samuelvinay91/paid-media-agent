@@ -1,0 +1,10 @@
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+zone       = "us-central1-a"
+
+# Deploy your fork so code changes you push are what the VM runs.
+repo_url = "https://github.com/samuelvinay91/paid-media-agent.git"
+repo_ref = "main"
+
+# machine_type        = "e2-medium"
+# deletion_protection = true

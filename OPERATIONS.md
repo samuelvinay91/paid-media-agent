@@ -161,7 +161,15 @@ Do not infer a connection from a saved key. Check the catalog and one real read 
 
 `PAID_MEDIA_MODEL` accepts `provider:model`. Anthropic and OpenAI ship with the base install.
 The LangSmith Gateway uses `langsmith:provider/model`. Other providers have optional extras:
-`google`, `groq`, `xai`, `mistral`, and `deepseek`.
+`google`, `groq`, `xai`, `mistral`, `deepseek`, and `vertex`.
+
+Vertex AI uses Google Cloud credentials instead of an API key. Install the `vertex` extra, set
+`PAID_MEDIA_MODEL=google_vertexai:gemini-3.1-pro` (or `google_anthropic_vertex:<model>` for a
+Claude model enabled in Model Garden), and set `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`.
+Locally, run `gcloud auth application-default login` once. On Compute Engine the VM's service
+account needs `roles/aiplatform.user`; see [deploy/gcp](deploy/gcp/README.md). A cheaper
+selector such as `PAID_MEDIA_TOOL_SELECTOR_MODEL=google_vertexai:gemini-3.8-flash` keeps tool
+selection fast.
 
 For an OpenAI-compatible endpoint, set `PAID_MEDIA_MODEL_BASE_URL` and
 `PAID_MEDIA_MODEL_API_KEY_ENV` to the name of its key environment variable. Native tool search is

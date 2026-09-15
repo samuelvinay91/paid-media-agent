@@ -71,6 +71,8 @@ WRITE_TOOLS: tuple[str, ...] = (
     GET_PROPOSAL_TOOL,
 )
 MODEL_RETRY_ATTEMPTS = 2
+# Providers that authenticate with Application Default Credentials instead of an API key.
+VERTEX_PROVIDERS: frozenset[str] = frozenset({"google_vertexai", "google_anthropic_vertex"})
 
 
 @dataclass(frozen=True)
@@ -150,12 +152,16 @@ def resolve_model(
     *,
     api_key_env: str | None = None,
     timeout_seconds: int = 120,
+    vertex_project: str | None = None,
+    vertex_location: str | None = None,
 ) -> BaseChatModel:
     """Initialize the configured provider model. No implicit gateway: `langsmith:` specs opt in.
 
     `api_key_env` names the environment variable holding the key when the provider does not read
-    its default one (for example an OpenAI-compatible endpoint with its own key). Every request
-    gets a timeout and two SDK retries; the retry middleware handles what remains.
+    its default one (for example an OpenAI-compatible endpoint with its own key). Vertex AI
+    providers authenticate with Application Default Credentials; `vertex_project` and
+    `vertex_location` pin the Google Cloud project and region when ADC does not imply them.
+    Every request gets a timeout and two SDK retries; the retry middleware handles what remains.
     """
     if override is not None:
         return override
@@ -168,6 +174,11 @@ def resolve_model(
         kwargs["base_url"] = str(config.base_url)
     if api_key_env and os.environ.get(api_key_env):
         kwargs["api_key"] = os.environ[api_key_env]
+    if config.provider in VERTEX_PROVIDERS:
+        if vertex_project:
+            kwargs["project"] = vertex_project
+        if vertex_location:
+            kwargs["location"] = vertex_location
     resolved: BaseChatModel = init_chat_model(config.spec, **kwargs)
     return resolved
 
@@ -192,6 +203,8 @@ def build_agent_components(
         model,
         api_key_env=settings.paid_media_model_api_key_env,
         timeout_seconds=settings.paid_media_model_timeout_seconds,
+        vertex_project=settings.google_cloud_project,
+        vertex_location=settings.google_cloud_location,
     )
     services = _build_services(settings, runtime)
 
@@ -216,7 +229,10 @@ def build_agent_components(
         if plan.selector_model:
             selector_config = ModelConfig.parse(plan.selector_model)
             selected = resolve_model(
-                selector_config, timeout_seconds=settings.paid_media_model_timeout_seconds
+                selector_config,
+                timeout_seconds=settings.paid_media_model_timeout_seconds,
+                vertex_project=settings.google_cloud_project,
+                vertex_location=settings.google_cloud_location,
             )
             selection_model = lenient_selector(selected, selector_config) or selected
         else:
