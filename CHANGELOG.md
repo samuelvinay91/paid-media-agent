@@ -22,7 +22,10 @@
   JSON mode, since the Vertex client drops `const` and rejects `anyOf`.
 - Live Pipeboard catalogs: read tools and discovery cover only platforms with a mapped account,
   the selector legend carries one-line summaries, and Meta `get_insights` is admitted by binding
-  the mapped ad account to `object_id`.
+  the mapped ad account to `object_id` (act_-prefixed) with the allowlist `account_id` injected
+  host-side.
+- The model's filesystem view is limited to `/skills` and `/workspace` in every runtime, matching
+  the managed sandbox; application source and configuration are no longer readable.
 
 Live provider writes remain disabled by default and require the documented release gates.
 
