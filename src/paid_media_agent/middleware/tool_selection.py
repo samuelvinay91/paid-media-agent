@@ -75,7 +75,7 @@ _VERTEX = ModelCapabilities(
     native_tool_search=False,
     streaming_tool_calls=True,
     integration_package="langchain-google-vertexai",
-    notes="Gemini on Vertex AI with Application Default Credentials; portable selector path.",
+    notes="Gemini on Vertex AI with Application Default Credentials; Gemini 3 models serve only from the global location; portable selector path.",
     verified=True,
 )
 _GATEWAY = ModelCapabilities(
@@ -115,8 +115,9 @@ CAPABILITY_REGISTRY: dict[str, ModelCapabilities] = {
     "openai:gpt-5.6": _OPENAI,
     "google_genai:gemini-3-flash": _GOOGLE,
     "google_genai:gemini-3.6-flash": _GOOGLE,
-    "google_vertexai:gemini-3.1-pro": _VERTEX,
     "google_vertexai:gemini-3.8-flash": _VERTEX,
+    "google_vertexai:gemini-3.5-flash-lite": _VERTEX,
+    "google_vertexai:gemini-2.5-pro": _VERTEX,
     "scripted:demo": _SCRIPTED,
     "langsmith:anthropic/claude-sonnet-4-6": _GATEWAY,
     "langsmith:anthropic/claude-opus-5": _GATEWAY,
@@ -231,16 +232,50 @@ class PortableToolSelectorMiddleware(LLMToolSelectorMiddleware):
             return await handler(self._core_only(request))
 
 
+def literal_union_to_enum(schema: Any) -> Any:
+    """Rewrite `anyOf` lists of string `const` entries into a string `enum`.
+
+    The selection schema names each tool as `Literal[name]` with its description. A provider
+    that drops `const` is left with descriptions only and echoes those back as the selection.
+    The enum keeps the names; the descriptions move into the field description so the model
+    still sees what each tool does.
+    """
+    if isinstance(schema, list):
+        return [literal_union_to_enum(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    options = schema.get("anyOf")
+    if (
+        isinstance(options, list)
+        and options
+        and all(isinstance(o, dict) and isinstance(o.get("const"), str) for o in options)
+    ):
+        legend = "; ".join(
+            f"{o['const']}: {o['description']}" if o.get("description") else o["const"]
+            for o in options
+        )
+        rewritten = {k: v for k, v in schema.items() if k != "anyOf"}
+        rewritten.update(
+            {"type": "string", "enum": [o["const"] for o in options], "description": legend}
+        )
+        return rewritten
+    return {k: literal_union_to_enum(v) for k, v in schema.items()}
+
+
 class LenientStructuredOutputModel(BaseChatModel):
-    """Delegate to a chat model but run structured output through function calling.
+    """Delegate to a chat model but adapt how the tool-selection schema reaches the provider.
 
     `LLMToolSelectorMiddleware` asks the selector for a JSON object whose schema has no
-    `additionalProperties: false`. OpenAI-format strict schemas (which the LangSmith Gateway
-    applies to `langsmith:` models) reject that, so the selection call uses function calling,
-    which every gateway provider translates.
+    `additionalProperties: false` and names each tool as a single-value literal. OpenAI-format
+    strict schemas (which the LangSmith Gateway applies to `langsmith:` models) reject the
+    former, so gateway selection uses function calling. Gemini on Vertex AI drops `const` from
+    schemas and rejects `anyOf` in JSON mode, so it would answer with descriptions instead of
+    names; `enum_literals` rewrites the literal union into a string enum first.
     """
 
     inner: BaseChatModel
+    method: str = "function_calling"
+    enum_literals: bool = False
 
     @property
     def _llm_type(self) -> str:
@@ -259,8 +294,10 @@ class LenientStructuredOutputModel(BaseChatModel):
     ) -> Runnable[LanguageModelInput, Any]:
         kwargs.pop("method", None)
         kwargs.pop("strict", None)
+        if self.enum_literals:
+            schema = literal_union_to_enum(schema)
         try:
-            return self.inner.with_structured_output(schema, method="function_calling", **kwargs)
+            return self.inner.with_structured_output(schema, method=self.method, **kwargs)
         except TypeError:
             return self.inner.with_structured_output(schema, **kwargs)
 
@@ -279,6 +316,8 @@ def lenient_selector(model: BaseChatModel, config: ModelConfig) -> BaseChatModel
     """Selector model for the portable path, or None to let the middleware reuse the main model."""
     if config.provider == "langsmith":
         return LenientStructuredOutputModel(inner=model)
+    if config.provider == "google_vertexai":
+        return LenientStructuredOutputModel(inner=model, method="json_mode", enum_literals=True)
     return None
 
 

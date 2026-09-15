@@ -59,16 +59,21 @@ The VM's service account carries `roles/aiplatform.user`, so Gemini and Claude o
 with no model API key anywhere on the machine. Put these in your local `.env` before pushing:
 
 ```
-PAID_MEDIA_MODEL=google_vertexai:gemini-3.1-pro
-PAID_MEDIA_TOOL_SELECTOR_MODEL=google_vertexai:gemini-3.8-flash
+PAID_MEDIA_MODEL=google_vertexai:gemini-3.8-flash
+PAID_MEDIA_TOOL_SELECTOR_MODEL=google_vertexai:gemini-3.5-flash-lite
 GOOGLE_CLOUD_PROJECT=<project_id from terraform.tfvars>
-GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_CLOUD_LOCATION=global
 ```
+
+`global` matters: Gemini 3 models return 404 from regional endpoints such as `us-central1`, which
+serve only Gemini 2.5 and older. `gemini-2.5-pro` works from either. Model metadata can list a
+model as available that inference still rejects, so confirm a new id with one small request
+before switching.
 
 For Claude, enable the model in Model Garden first, then use the Vertex model id, for example
 `google_anthropic_vertex:claude-sonnet-4-6` or `google_anthropic_vertex:claude-opus-5`. Claude
-models newer than Sonnet 4.6 are served only from the `global` and multi-region endpoints, so set
-`GOOGLE_CLOUD_LOCATION=global` for them. Claude on Vertex uses the portable tool selector.
+models newer than Sonnet 4.6 also need the `global` location. Claude on Vertex uses the portable
+tool selector.
 
 To run `ask` locally against Vertex, run `gcloud auth application-default login` once; the VM
 needs nothing extra.

@@ -86,11 +86,11 @@ def test_vertex_providers_use_adc_and_portable_selection(monkeypatch: pytest.Mon
         return object()
 
     monkeypatch.setattr("langchain.chat_models.init_chat_model", fake_init)
-    vertex = ModelConfig.parse("google_vertexai:gemini-3.1-pro")
+    vertex = ModelConfig.parse("google_vertexai:gemini-3.8-flash")
     assert capabilities_for(vertex).verified and not capabilities_for(vertex).native_tool_search
     assert plan_selection(vertex, max_tools=6).strategy is SelectionStrategy.PORTABLE_SELECTOR
     resolve_model(vertex, vertex_project="demo-project", vertex_location="europe-west1")
-    assert captured["spec"] == "google_vertexai:gemini-3.1-pro"
+    assert captured["spec"] == "google_vertexai:gemini-3.8-flash"
     assert captured["project"] == "demo-project" and captured["location"] == "europe-west1"
     assert "api_key" not in captured, "Vertex authenticates with ADC, never a stored key"
 

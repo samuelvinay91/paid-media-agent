@@ -47,6 +47,9 @@ id -u "$APP_USER" >/dev/null 2>&1 || useradd --system --create-home --shell /bin
 usermod -aG docker "$APP_USER"
 
 # Checkout pinned to the ref in instance metadata. Changing the metadata and re-running updates it.
+# The checkout is owned by the service user, so root's git needs it marked safe on re-runs.
+git config --system --get-all safe.directory 2>/dev/null | grep -qx "$APP_DIR" \
+  || git config --system --add safe.directory "$APP_DIR"
 if [ ! -d "$APP_DIR/.git" ]; then
   git clone --quiet "$REPO_URL" "$APP_DIR"
 fi
