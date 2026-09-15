@@ -11,6 +11,10 @@ terraform {
       source  = "hashicorp/google"
       version = ">= 6.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.9"
+    }
   }
 }
 
@@ -24,6 +28,13 @@ resource "google_project_service" "apis" {
   for_each           = toset(["compute.googleapis.com", "iap.googleapis.com", "aiplatform.googleapis.com"])
   service            = each.key
   disable_on_destroy = false
+}
+
+# A freshly enabled Compute Engine API takes a minute or two to propagate; without this wait,
+# disk and policy creation on a new project fails with a 403 saying the API is not enabled.
+resource "time_sleep" "api_propagation" {
+  depends_on      = [google_project_service.apis]
+  create_duration = "90s"
 }
 
 resource "google_compute_network" "net" {
@@ -106,6 +117,8 @@ resource "google_compute_disk" "boot" {
   size  = var.disk_size_gb
   type  = "pd-balanced"
 
+  depends_on = [time_sleep.api_propagation]
+
   lifecycle {
     # A newer Debian image must not force a disk rebuild; the VM patches itself in place.
     ignore_changes = [image]
@@ -113,8 +126,9 @@ resource "google_compute_disk" "boot" {
 }
 
 resource "google_compute_resource_policy" "daily_snapshot" {
-  name   = "${var.name}-daily-snapshot"
-  region = var.region
+  name       = "${var.name}-daily-snapshot"
+  region     = var.region
+  depends_on = [time_sleep.api_propagation]
 
   snapshot_schedule_policy {
     schedule {
