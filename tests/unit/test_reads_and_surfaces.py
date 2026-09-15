@@ -9,6 +9,7 @@ import pytest
 
 from paid_media_agent.config import AccountRegistry
 from paid_media_agent.domain.analysis import PeriodComparison
+from paid_media_agent.domain.common import Platform
 from paid_media_agent.reports.bridge import ArtifactBridge, BridgeError
 from paid_media_agent.reports.render import ReportRenderer, build_report_payload, reconcile_report
 from paid_media_agent.surfaces.api.app import resolve_caller
@@ -308,3 +309,34 @@ def test_api_bearer_lookup_is_exact() -> None:
     assert resolve_caller(tokens, "Bearer tok-on") is None
     assert resolve_caller(tokens, "tok-one") is None
     assert resolve_caller({}, "Bearer tok-one") is None
+
+
+def test_meta_insights_scope_injects_prefixed_object_id_and_account_id(
+    dispatcher: ReadDispatcher,
+) -> None:
+    base = build_fixture_catalog().get("meta_ads__get_campaign_performance")
+    assert base is not None
+    insights = base.model_copy(
+        update={
+            "name": "get_insights",
+            "qualified_name": "meta_ads__get_insights",
+            "account_arg": "object_id",
+            "input_schema": {
+                "type": "object",
+                "properties": {"object_id": {"type": "string"}, "level": {"type": "string"}},
+                "required": ["object_id"],
+            },
+        }
+    )
+    alias, scoped = dispatcher.scope_arguments(
+        insights, {"account_alias": "demo-meta", "level": "campaign"}
+    )
+    binding = dispatcher.accounts.resolve(alias)
+    assert binding is not None and binding.platform is Platform.META_ADS
+    assert scoped["object_id"] == f"act_{binding.provider_account_id}"
+    assert scoped["account_id"] == binding.provider_account_id, "allowlist id is host-owned"
+    assert "account_alias" not in scoped
+    with pytest.raises(ReadDenied, match="raw_account_id_rejected"):
+        dispatcher.scope_arguments(
+            insights, {"account_alias": "demo-meta", "account_id": binding.provider_account_id}
+        )

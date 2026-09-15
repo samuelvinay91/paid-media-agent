@@ -26,7 +26,12 @@ from paid_media_agent.tools.fixtures import FixtureState, build_fixture_catalog
 
 
 def filesystem_permissions() -> list[FilesystemPermission]:
-    """Hide secrets and coding-agent files; keep runtime skills read-only."""
+    """The model sees runtime skills and its workspace, nothing else; skills stay read-only.
+
+    Rules are first-match-wins. Reads outside `/skills` and `/workspace` are denied so the
+    model cannot wander into application source or configuration, matching the managed sandbox,
+    which mounts only those two trees.
+    """
     return [
         FilesystemPermission(
             operations=["read", "write"],
@@ -44,6 +49,12 @@ def filesystem_permissions() -> list[FilesystemPermission]:
             ],
             mode="deny",
         ),
+        FilesystemPermission(
+            operations=["read"],
+            paths=["/", "/skills", "/skills/**", "/workspace", "/workspace/**"],
+            mode="allow",
+        ),
+        FilesystemPermission(operations=["read"], paths=["/**"], mode="deny"),
         FilesystemPermission(operations=["write"], paths=["/workspace/skills/**"], mode="deny"),
         FilesystemPermission(operations=["write"], paths=["/workspace/**"], mode="allow"),
         FilesystemPermission(operations=["write"], paths=["/**"], mode="deny"),

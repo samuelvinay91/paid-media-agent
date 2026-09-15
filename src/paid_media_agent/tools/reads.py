@@ -179,6 +179,13 @@ class ReadDispatcher:
             if isinstance(value, str) and value in self._accounts.provider_ids():
                 raise ReadDenied("raw_account_id_rejected", "provider account ids are host-owned")
         args[entry.account_arg] = binding.provider_account_id
+        if entry.platform is Platform.META_ADS and entry.account_arg == "object_id":
+            # Pipeboard's Meta insights tools take the account as an act_-prefixed object_id
+            # and enforce their account allowlist through account_id, which the schema does
+            # not declare. Both come from the host binding, never from the model.
+            account_id = binding.provider_account_id.removeprefix("act_")
+            args["object_id"] = f"act_{account_id}"
+            args["account_id"] = account_id
         if entry.platform is Platform.GOOGLE_ANALYTICS:
             property_id = binding.provider_account_id.removeprefix("properties/")
             args[entry.account_arg] = (

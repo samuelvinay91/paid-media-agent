@@ -35,8 +35,10 @@ are not synced to the sandbox. Business context belongs in
 `workspace/skills/company-context/`, alongside the runtime skills. Original briefs remain in
 `workspace/sources/` and are not synced. See [customization](../customization.md).
 
-Locally the repository is the filesystem. Writes are allowed under `/workspace` except
-`workspace/skills`, which stays read-only. Coding-agent files, raw sources, and secret paths are denied. Provider reads and report generation use the same
+Locally the checkout is the filesystem root, but the model may read only `/skills` and
+`/workspace`, the same two trees the managed sandbox mounts. Writes are allowed under
+`/workspace` except `workspace/skills`, which stays read-only. Application source,
+coding-agent files, raw sources, and secret paths are denied. Provider reads and report generation use the same
 host tools in both runtimes.
 
 ## Parity contract

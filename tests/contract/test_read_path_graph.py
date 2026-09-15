@@ -17,6 +17,7 @@ async def test_runtime_loads_only_runtime_skills_and_keeps_them_read_only(
     settings: Settings, project_root: Path, tmp_path: Path
 ) -> None:
     shutil.copy(project_root / "instructions.md", tmp_path / "instructions.md")
+    shutil.copy(project_root / "pyproject.toml", tmp_path / "pyproject.toml")
     shutil.copytree(project_root / "workspace" / "skills", tmp_path / "workspace" / "skills")
     shutil.copytree(project_root / ".agents", tmp_path / ".agents")
     (tmp_path / "skills").symlink_to("workspace/skills", target_is_directory=True)
@@ -33,6 +34,8 @@ async def test_runtime_loads_only_runtime_skills_and_keeps_them_read_only(
         lambda _m: tool_call_message(
             "write_file", {"file_path": "/workspace/note.txt", "content": "analysis notes"}
         ),
+        lambda _m: tool_call_message("read_file", {"file_path": "/pyproject.toml"}),
+        lambda _m: tool_call_message("ls", {"path": "/"}),
         lambda _m: AIMessage(content="done"),
     ]
     runtime, _ = build_runtime(settings, tmp_path, steps)
@@ -50,6 +53,9 @@ async def test_runtime_loads_only_runtime_skills_and_keeps_them_read_only(
     assert "permission denied" in str(messages[2].content)
     assert not (tmp_path / "workspace" / "skills" / "unwanted.md").exists()
     assert (tmp_path / "workspace" / "note.txt").read_text() == "analysis notes"
+    assert "permission denied" in str(messages[4].content), "application files are not readable"
+    listing = str(messages[5].content)
+    assert "/skills" in listing and "/workspace" in listing and "pyproject" not in listing
 
 
 async def test_manually_authored_company_context_uses_runtime_skills(
