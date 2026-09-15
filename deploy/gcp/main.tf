@@ -183,12 +183,15 @@ resource "google_compute_instance" "vm" {
     enable_integrity_monitoring = true
   }
 
+  # The startup script lives in the metadata map rather than metadata_startup_script: the
+  # latter forces instance replacement on every edit, the former updates in place. Apply, then
+  # re-run it on the VM with: sudo google_metadata_script_runner startup
   metadata = {
     enable-oslogin = "TRUE"
+    startup-script = file("${path.module}/startup.sh")
     pma-repo-url   = var.repo_url
     pma-repo-ref   = var.repo_ref
   }
-  metadata_startup_script = file("${path.module}/startup.sh")
 
   depends_on = [google_compute_router_nat.nat]
 }
