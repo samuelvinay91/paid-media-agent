@@ -34,7 +34,8 @@ class SlackDelivery:
                 initiator_user_id=self.user,
                 status="processing",
             )
-            self.stream = self.client.chat_stream(
+            # slack_sdk 3.44 opens the stream asynchronously; the streamer is the awaited result.
+            self.stream = await self.client.chat_stream(
                 channel=self.channel,
                 thread_ts=self.thread_ts,
                 recipient_team_id=self.team,

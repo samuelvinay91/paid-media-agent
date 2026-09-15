@@ -13,7 +13,7 @@ async def test_native_stream_preserves_text_and_generic_tool_progress() -> None:
     stream = SimpleNamespace(append=AsyncMock(), stop=AsyncMock())
     client = SimpleNamespace(
         agents_sessions_setStatus=AsyncMock(),
-        chat_stream=lambda **_kwargs: stream,
+        chat_stream=AsyncMock(return_value=stream),
         chat_postMessage=AsyncMock(),
     )
     delivery = SlackDelivery(client, channel="C1", thread_ts="1", team="T1", user="U1")
@@ -67,7 +67,7 @@ async def test_failed_run_closes_stream_and_clears_processing_status() -> None:
     )
     client = SimpleNamespace(
         agents_sessions_setStatus=AsyncMock(),
-        chat_stream=lambda **_kwargs: stream,
+        chat_stream=AsyncMock(return_value=stream),
         chat_postMessage=AsyncMock(),
     )
 
@@ -96,7 +96,7 @@ async def test_approval_suspends_native_session_and_marks_tool_pending() -> None
     stream = SimpleNamespace(append=AsyncMock(), stop=AsyncMock())
     client = SimpleNamespace(
         agents_sessions_setStatus=AsyncMock(),
-        chat_stream=lambda **_kwargs: stream,
+        chat_stream=AsyncMock(return_value=stream),
     )
     delivery = SlackDelivery(client, channel="C1", thread_ts="1", team="T1", user="U1")
     await delivery.event(RunEvent("start"))
